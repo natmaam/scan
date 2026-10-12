@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>ลงทะเบียนใบหน้า</title>
+  <script>
+  /* หน้านี้อยู่นอก Apps Script: แทน google.script.run ด้วยการเรียก doPost ของเว็บแอป */
+  var API_URL = 'https://script.google.com/macros/s/AKfycbyUkMRlFRvnJBZ4Y1sX0e-cV7Yhd7I4DUqs4PivjF72-4_jAWp_rgjIJ7mhZPw9c3Sw/exec';
+  window.google = {
+    script: {
+      get run() {
+        var ok = function () {}, fail = function () {};
+        var runner = new Proxy({}, {
+          get: function (_, fn) {
+            if (fn === 'withSuccessHandler') return function (f) { ok = f; return runner; };
+            if (fn === 'withFailureHandler') return function (f) { fail = f; return runner; };
+            return function () {
+              var args = Array.prototype.slice.call(arguments);
+              fetch(API_URL, { method: 'POST', body: JSON.stringify({ fn: fn, args: args }) })
+                .then(function (res) { return res.json(); })
+                .then(function (j) { if (j.ok) ok(j.data); else fail(new Error(j.error)); })
+                .catch(function (e) { fail(new Error('เชื่อมต่อระบบไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่ (' + e.message + ')')); });
+            };
+          },
+        });
+        return runner;
+      },
+    },
+  };
+</script>
+
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f5f8; --card: #ffffff; --text: #1d2733; --muted: #6b7684; --line: #e3e7ec;
+    --brand: #1f3a5f; --brand-2: #2f5d93;
+    --ok: #15803d; --ok-bg: #dcfce7; --warn: #a16207; --warn-bg: #fef3c7;
+    --bad: #b91c1c; --bad-bg: #fee2e2; --info: #1d4ed8; --info-bg: #dbeafe; --off-bg: #eef1f4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { font-family: 'Sarabun', system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.5; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
+  .narrow { max-width: 440px; }
+  h1 { font-size: 22px; margin: 0; }
+  h2 { font-size: 18px; margin: 0 0 10px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-bottom: 14px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .between { justify-content: space-between; }
+  .grow { flex: 1; }
+  label { display: block; font-size: 14px; color: var(--muted); margin: 10px 0 4px; }
+  input, select, textarea { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--text); }
+  select.inline, input.inline { width: auto; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 10px 16px; cursor: pointer; background: var(--brand); color: #fff; }
+  button.secondary { background: #e8edf3; color: var(--brand); }
+  button.danger { background: var(--bad); }
+  button.block { width: 100%; padding: 13px; font-size: 17px; }
+  button:disabled { opacity: .5; cursor: default; }
+  .err { background: var(--bad-bg); color: var(--bad); padding: 10px 12px; border-radius: 10px; margin-top: 10px; }
+  .hidden { display: none !important; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .stat .v { font-size: 26px; font-weight: 700; line-height: 1.2; }
+  .stat .k { font-size: 13px; color: var(--muted); }
+  .stat.bad .v { color: var(--bad); } .stat.warn .v { color: var(--warn); } .stat.ok .v { color: var(--ok); }
+  .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; background: #f8fafc; position: sticky; top: 0; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+  .p-ok, .p-working { background: var(--ok-bg); color: var(--ok); }
+  .p-late, .p-warn { background: var(--warn-bg); color: var(--warn); }
+  .p-absent { background: var(--bad-bg); color: var(--bad); }
+  .p-future, .p-waiting { background: var(--info-bg); color: var(--info); }
+  .p-off, .p-done { background: var(--off-bg); color: var(--muted); }
+  .money td { padding: 6px 0; border: 0; }
+  .money .neg { color: var(--bad); }
+  .money .total td { border-top: 2px solid var(--line); font-size: 20px; font-weight: 700; padding-top: 10px; }
+  .tabs { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; }
+  .tabs button { background: #e8edf3; color: var(--brand); white-space: nowrap; }
+  .tabs button.on { background: var(--brand); color: #fff; }
+  .modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .5); display: flex; align-items: flex-start; justify-content: center; padding: 30px 16px; overflow-y: auto; z-index: 10; }
+  .modal .card { width: 100%; max-width: 560px; }
+  .topbar { background: var(--brand); color: #fff; }
+  .topbar .wrap { padding-top: 12px; padding-bottom: 12px; }
+  .topbar button { background: rgba(255,255,255,.15); }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -3px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<script>
+  function api(fn) {
+    const args = Array.prototype.slice.call(arguments, 1);
+    return new Promise(function (resolve, reject) {
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(function (e) {
+        reject(new Error((e && e.message) || String(e)));
+      })[fn].apply(null, args);
+    });
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function baht(n) { return Number(n || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function num(n, d) { return Number(n || 0).toLocaleString('th-TH', { maximumFractionDigits: d == null ? 2 : d }); }
+  function $(id) { return document.getElementById(id); }
+  function store(k, v) {
+    try {
+      if (v === undefined) return localStorage.getItem(k);
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    } catch (e) { return null; }
+  }
+</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/dist/face-api.js"></script>
+<script>
+  /* จดจำใบหน้าในเบราว์เซอร์ (ไม่ส่งรูปหน้าไปบริการภายนอก ส่งเฉพาะตัวเลข 128 ค่าไปเทียบที่ระบบของเรา) */
+  var FACE = {
+    MODEL: 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.14/model/',
+    _ready: null,
+    stream: null,
+
+    load: function () {
+      if (!this._ready) {
+        this._ready = Promise.all([
+          faceapi.nets.tinyFaceDetector.loadFromUri(this.MODEL),
+          faceapi.nets.faceLandmark68Net.loadFromUri(this.MODEL),
+          faceapi.nets.faceRecognitionNet.loadFromUri(this.MODEL),
+        ]);
+      }
+      return this._ready;
+    },
+
+    start: function (video) {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        return Promise.reject(new Error('เบราว์เซอร์นี้เปิดกล้องไม่ได้ ลองใช้ Chrome หรือ Safari'));
+      }
+      var self = this;
+      return navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false })
+        .then(function (s) { self.stream = s; video.srcObject = s; return video.play(); })
+        .catch(function (e) {
+          throw new Error(e && e.name === 'NotAllowedError' ? 'ไม่ได้รับอนุญาตให้ใช้กล้อง กรุณากดอนุญาต' : 'เปิดกล้องไม่ได้: ' + (e && e.message || e));
+        });
+    },
+
+    stop: function (video) {
+      if (this.stream) this.stream.getTracks().forEach(function (t) { t.stop(); });
+      this.stream = null;
+      if (video) video.srcObject = null;
+    },
+
+    detect: function (video) {
+      return faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 }))
+        .withFaceLandmarks().withFaceDescriptor();
+    },
+
+    descriptor: function (det) {
+      return Array.prototype.map.call(det.descriptor, function (v) { return Math.round(v * 1e5) / 1e5; });
+    },
+
+    /** หน้าใหญ่พอไหม (กันคนยืนไกล/ติดคนข้างหลัง) */
+    bigEnough: function (det, video) { return det.detection.box.width >= video.videoWidth * 0.22; },
+
+    snapshot: function (video) {
+      var w = 360, h = Math.round(video.videoHeight * w / video.videoWidth);
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(video, 0, 0, w, h);
+      return c.toDataURL('image/jpeg', 0.7).split(',')[1];
+    },
+
+    /** ตรวจกะพริบตา: ตาเปิด -> ปิด -> เปิด */
+    blink: {
+      state: 0,
+      reset: function () { this.state = 0; },
+      ear: function (p) {
+        var d = function (a, b) { return Math.hypot(a.x - b.x, a.y - b.y); };
+        return (d(p[1], p[5]) + d(p[2], p[4])) / (2 * d(p[0], p[3]));
+      },
+      update: function (landmarks) {
+        var e = (this.ear(landmarks.getLeftEye()) + this.ear(landmarks.getRightEye())) / 2;
+        if (this.state === 0 && e > 0.26) this.state = 1;
+        else if (this.state === 1 && e < 0.2) this.state = 2;
+        else if (this.state === 2 && e > 0.24) this.state = 3;
+        return this.state === 3;
+      },
+    },
+  };
+</script>
+
+  <style>
+    .camwrap { position: relative; max-width: 380px; margin: 0 auto; border-radius: 14px; overflow: hidden; background: #000; aspect-ratio: 3 / 4; }
+    .camwrap video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+  </style>
+</head>
+<body>
+  <div class="wrap narrow" id="loginView">
+    <div style="text-align:center;margin:30px 0 20px">
+      <h1>ลงทะเบียนใบหน้า</h1>
+      <div class="muted">สำหรับเจ้าของ / แอดมิน · ทำบนมือถือที่ใช้สแกนที่ร้าน</div>
+    </div>
+    <div class="card">
+      <label for="uid">รหัส (เจ้าของใช้ OWNER)</label>
+      <input id="uid" autocapitalize="characters">
+      <label for="upin">PIN</label>
+      <input id="upin" type="password" inputmode="numeric">
+      <div class="err hidden" id="loginErr"></div>
+      <button class="block" id="loginBtn" style="margin-top:16px">เข้าสู่ระบบ</button>
+    </div>
+  </div>
+
+  <div id="mainView" class="hidden">
+    <div class="topbar">
+      <div class="wrap row between">
+        <div><div class="small" style="opacity:.8" id="shopName"></div><b>ลงทะเบียนใบหน้า</b></div>
+        <button id="logoutBtn">ออกจากระบบ</button>
+      </div>
+    </div>
+    <div class="wrap narrow">
+      <div class="card">
+        <label for="faceEmp" style="margin-top:0">พนักงาน</label>
+        <select id="faceEmp"></select>
+        <div class="small muted" style="margin-top:6px">ที่สว่าง แสงส่องหน้า ถอดหมวก/หน้ากาก มองกล้องตรงๆ ห่างประมาณ 1 ช่วงแขน</div>
+        <div class="row" style="margin:12px 0">
+          <button id="faceStart" class="grow">เปิดกล้อง</button>
+          <button id="faceCapture" class="grow" disabled>บันทึกใบหน้า</button>
+        </div>
+        <div class="camwrap hidden" id="faceCam"><video id="faceVideo" playsinline muted></video></div>
+        <div id="faceMsg" style="margin-top:10px"></div>
+      </div>
+      <div class="card" id="faceList"></div>
+    </div>
+  </div>
+
+<script>
+  var TOKEN = store('hr_enroll_token');
+  var EMPS = [];
+
+  function showLogin(msg) {
+    $('mainView').classList.add('hidden');
+    $('loginView').classList.remove('hidden');
+    if (msg) { $('loginErr').textContent = msg; $('loginErr').classList.remove('hidden'); }
+  }
+
+  $('loginBtn').onclick = function () {
+    $('loginBtn').disabled = true;
+    $('loginErr').classList.add('hidden');
+    api('login', $('uid').value, $('upin').value, 'admin').then(function (r) {
+      TOKEN = r.token; store('hr_enroll_token', TOKEN); $('upin').value = ''; start();
+    }).catch(function (e) { showLogin(e.message); }).then(function () { $('loginBtn').disabled = false; });
+  };
+  $('upin').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('loginBtn').click(); });
+  $('logoutBtn').onclick = function () { api('logout', TOKEN); store('hr_enroll_token', null); FACE.stop($('faceVideo')); showLogin(); };
+
+  function start() {
+    api('adminInit', TOKEN).then(function (i) {
+      $('loginView').classList.add('hidden');
+      $('mainView').classList.remove('hidden');
+      $('shopName').textContent = i.shop;
+      EMPS = i.employees.filter(function (e) { return e.active; });
+      $('faceEmp').innerHTML = EMPS.map(function (e) {
+        return '<option value="' + esc(e.id) + '">' + esc(e.name) + (e.hasFace ? ' ✓' : '') + '</option>';
+      }).join('');
+      var first = EMPS.find(function (e) { return !e.hasFace; });
+      if (first) $('faceEmp').value = first.id;
+      renderList();
+    }).catch(function (e) {
+      store('hr_enroll_token', null);
+      showLogin(e.message.indexOf('SESSION_EXPIRED') >= 0 ? '' : e.message);
+    });
+  }
+
+  function renderList() {
+    var done = EMPS.filter(function (e) { return e.hasFace; }).length;
+    $('faceList').innerHTML = '<h2>ลงทะเบียนแล้ว ' + done + ' / ' + EMPS.length + ' คน</h2><table><tbody>' + EMPS.map(function (e) {
+      return '<tr><td>' + esc(e.name) + '</td><td>' + (e.hasFace ? '<span class="pill p-ok">ลงทะเบียนแล้ว</span>' : '<span class="pill p-off">ยังไม่ลงทะเบียน</span>') + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  }
+
+  function faceMsg(html) { $('faceMsg').innerHTML = html; }
+
+  $('faceStart').onclick = function () {
+    $('faceStart').disabled = true;
+    faceMsg('<span class="spinner"></span> กำลังโหลดระบบจดจำใบหน้า...');
+    FACE.load().then(function () { $('faceCam').classList.remove('hidden'); return FACE.start($('faceVideo')); })
+      .then(function () { faceMsg('ให้พนักงานมองกล้อง แล้วกด "บันทึกใบหน้า"'); $('faceCapture').disabled = false; $('faceStart').classList.add('hidden'); })
+      .catch(function (e) { faceMsg('<div class="err">' + esc(e.message) + '</div>'); $('faceStart').disabled = false; });
+  };
+
+  $('faceCapture').onclick = function () {
+    var video = $('faceVideo'), samples = [], tries = 0, btn = $('faceCapture');
+    btn.disabled = true;
+    faceMsg('<span class="spinner"></span> กำลังเก็บภาพ 0/3 — มองกล้องนิ่งๆ');
+    (function next() {
+      if (samples.length >= 3) return save();
+      if (++tries > 40) { faceMsg('<div class="err">จับใบหน้าไม่ได้ ลองเพิ่มแสงหรือขยับเข้าใกล้กล้อง</div>'); btn.disabled = false; return; }
+      FACE.detect(video).then(function (det) {
+        if (det && FACE.bigEnough(det, video)) {
+          samples.push(FACE.descriptor(det));
+          faceMsg('<span class="spinner"></span> กำลังเก็บภาพ ' + samples.length + '/3');
+          setTimeout(next, 700);
+        } else setTimeout(next, 250);
+      }).catch(function () { setTimeout(next, 300); });
+    })();
+    function save() {
+      var id = $('faceEmp').value;
+      var emp = EMPS.find(function (e) { return e.id === id; });
+      faceMsg('<span class="spinner"></span> กำลังบันทึก...');
+      api('adminEnrollFace', TOKEN, id, samples).then(function () {
+        emp.hasFace = true;
+        var opt = $('faceEmp').querySelector('option[value="' + id + '"]');
+        if (opt && opt.textContent.indexOf('✓') < 0) opt.textContent += ' ✓';
+        renderList();
+        faceMsg('<span class="pill p-ok">✓ บันทึกใบหน้าของ ' + esc(emp.name) + ' แล้ว</span>');
+        var next = EMPS.find(function (e) { return !e.hasFace; });
+        if (next) $('faceEmp').value = next.id;
+      }).catch(function (e) {
+        faceMsg('<div class="err">' + esc(e.message.indexOf('SESSION_EXPIRED') >= 0 ? 'หมดเวลาเข้าสู่ระบบ กรุณาออกแล้วเข้าใหม่' : e.message) + '</div>');
+      }).then(function () { btn.disabled = false; });
+    }
+  };
+
+  if (TOKEN) start();
+</script>
+</body>
+</html>
