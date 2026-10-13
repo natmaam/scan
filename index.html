@@ -236,22 +236,6 @@
       <div class="result hidden" id="result"></div>
     </div>
 
-    <div class="foot"><button id="pinBtn">ลงเวลาด้วยรหัส + PIN</button></div>
-  </div>
-
-  <div class="modal hidden" id="pinModal">
-    <div class="card">
-      <h2>ลงเวลาด้วยรหัส + PIN</h2>
-      <label for="pinEmp">พนักงาน</label>
-      <select id="pinEmp"></select>
-      <label for="pinCode">PIN</label>
-      <input id="pinCode" type="password" inputmode="numeric" autocomplete="off" maxlength="8">
-      <div class="err hidden" id="pinErr"></div>
-      <div class="row" style="margin-top:14px">
-        <button class="secondary grow" id="pinCancel">ยกเลิก</button>
-        <button class="grow" id="pinOk">ลงเวลา</button>
-      </div>
-    </div>
   </div>
 
 <script>
@@ -272,12 +256,10 @@
   api('kioskInit', KEY).then(function (i) {
     info = i;
     $('shop').textContent = i.shop;
-    $('pinEmp').innerHTML = i.employees.map(function (e) { return '<option value="' + esc(e.id) + '">' + esc(e.name) + '</option>'; }).join('');
-    $('coverMsg').textContent = i.enrolled ? 'พร้อมสแกนใบหน้า' : 'ยังไม่มีพนักงานลงทะเบียนใบหน้า (ใช้รหัส + PIN ได้)';
+    $('coverMsg').textContent = i.enrolled ? 'พร้อมสแกนใบหน้า' : 'ยังไม่มีพนักงานลงทะเบียนใบหน้า';
     $('startBtn').classList.remove('hidden');
   }).catch(function (e) {
     $('coverMsg').textContent = e.message;
-    $('pinBtn').disabled = true;
   });
 
   $('startBtn').onclick = function () {
@@ -301,7 +283,7 @@
 
   function loop() {
     if (!running) return;
-    var go = !busy && Date.now() > pauseUntil && $('pinModal').classList.contains('hidden') && video.readyState >= 2;
+    var go = !busy && Date.now() > pauseUntil && video.readyState >= 2;
     if (!go) { setTimeout(loop, 300); return; }
     FACE.detect(video).then(function (det) {
       if (!det) { FACE.blink.reset(); hint('มองกล้องให้เห็นหน้าชัดๆ'); return; }
@@ -326,15 +308,23 @@
       fails++;
       cls = 'r-bad'; ms = 2500;
       html = '<div class="big">✕ ' + esc(r.message || 'ไม่สำเร็จ') + '</div>' +
-        '<div class="line">' + (fails >= 3 ? 'ลองกดปุ่ม "ลงเวลาด้วยรหัส + PIN" ด้านล่าง' : 'ลองใหม่อีกครั้ง') + '</div>';
+        '<div class="line">' + (fails >= 3 ? 'ถ้ายังไม่ได้ แจ้งเจ้าของหรือแอดมิน' : 'ลองใหม่อีกครั้ง') + '</div>';
     } else if (r.dup) {
       fails = 0; cls = 'r-dup'; ms = 3500;
-      html = '<div class="name">' + esc(r.name) + '</div><div class="line">บันทึก' + (r.action === 'IN' ? 'เข้างาน' : 'ออกงาน') + 'ไปแล้วเมื่อ ' + esc(r.time) + ' น.</div>';
+      html = '<div class="name">' + esc(r.name) + '</div><div class="line">บันทึก' + ({ IN: 'เข้างาน', BREAK_OUT: 'ออกพัก', BREAK_IN: 'กลับจากพัก', OUT: 'ออกงาน' }[r.action] || '') + 'ไปแล้วเมื่อ ' + esc(r.time) + ' น.</div>';
     } else if (r.action === 'IN') {
       fails = 0; cls = 'r-in';
       html = '<div class="big">✓ เข้างาน ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
         (r.shift ? '<div class="line">กะ ' + esc(r.shift) + '</div>' : '<div class="line">วันนี้ไม่มีกะในตาราง</div>') +
         (r.lateMin ? '<div class="line">⚠️ สาย ' + r.lateMin + ' นาที (หัก ' + baht(r.lateDeduct) + ' บาท)</div>' : '');
+    } else if (r.action === 'BREAK_OUT') {
+      fails = 0; cls = 'r-out';
+      html = '<div class="big">☕ ออกพัก ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
+        '<div class="line">พักได้ ' + r.allowMin + ' นาที · กลับมาแล้วสแกนอีกครั้ง</div>';
+    } else if (r.action === 'BREAK_IN') {
+      fails = 0; cls = 'r-in';
+      html = '<div class="big">✓ กลับจากพัก ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
+        '<div class="line">พัก ' + r.breakMin + ' นาที' + (r.overMin ? ' ⚠️ เกิน ' + r.overMin + ' นาที' : '') + '</div>';
     } else {
       fails = 0; cls = 'r-out';
       html = '<div class="big">✓ ออกงาน ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
@@ -347,26 +337,6 @@
     clearTimeout(hideTimer);
     hideTimer = setTimeout(function () { box.className = 'result hidden'; }, ms);
   }
-
-  // ---- PIN ----
-  $('pinBtn').onclick = function () {
-    $('pinErr').classList.add('hidden');
-    $('pinCode').value = '';
-    $('pinModal').classList.remove('hidden');
-  };
-  $('pinCancel').onclick = function () { $('pinModal').classList.add('hidden'); };
-  $('pinOk').onclick = function () {
-    var btn = $('pinOk');
-    btn.disabled = true;
-    var photo = running && video.readyState >= 2 ? FACE.snapshot(video) : '';
-    api('kioskPin', KEY, $('pinEmp').value, $('pinCode').value, photo).then(function (r) {
-      $('pinModal').classList.add('hidden');
-      show(r);
-    }).catch(function (e) {
-      $('pinErr').textContent = e.message;
-      $('pinErr').classList.remove('hidden');
-    }).then(function () { btn.disabled = false; });
-  };
 </script>
 </body>
 </html>
