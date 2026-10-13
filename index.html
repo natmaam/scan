@@ -324,7 +324,7 @@
     } else if (r.action === 'BREAK_IN') {
       fails = 0; cls = 'r-in';
       html = '<div class="big">✓ กลับจากพัก ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
-        '<div class="line">พัก ' + r.breakMin + ' นาที' + (r.overMin ? ' ⚠️ เกิน ' + r.overMin + ' นาที' : '') + '</div>';
+        '<div class="line">พัก ' + r.breakMin + ' นาที' + (r.overMin ? ' ⚠️ เกิน ' + r.overMin + ' นาที (หัก ' + baht(r.overDeduct) + ' บาท)' : '') + '</div>';
     } else {
       fails = 0; cls = 'r-out';
       html = '<div class="big">✓ ออกงาน ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
