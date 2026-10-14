@@ -243,6 +243,7 @@
   var KEY = P.key || '';
   var video = $('video');
   var info = null, running = false, busy = false, pauseUntil = 0, fails = 0, wakeLock = null, hideTimer = null;
+  var GEO = null, geoErr = '';
 
   function tick() {
     var d = new Date();
@@ -267,6 +268,7 @@
     $('coverMsg').innerHTML = '<span class="spinner"></span> กำลังโหลดระบบจดจำใบหน้า...';
     FACE.load().then(function () { return FACE.start(video); }).then(function () {
       $('cover').classList.add('hidden');
+      watchGeo();
       keepAwake();
       running = true;
       loop();
@@ -275,6 +277,18 @@
       $('startBtn').classList.remove('hidden');
     });
   };
+
+  /** สแกนได้เฉพาะที่ร้าน: ติดตามตำแหน่งเครื่องตลอด ส่งไปเทียบระยะที่ระบบ */
+  function watchGeo() {
+    if (!info.geo) return;
+    if (!navigator.geolocation) { geoErr = 'เครื่องนี้หาตำแหน่งไม่ได้'; return; }
+    navigator.geolocation.watchPosition(function (p) {
+      GEO = { lat: p.coords.latitude, lng: p.coords.longitude, acc: Math.round(p.coords.accuracy), at: Date.now() };
+      geoErr = '';
+    }, function (e) {
+      geoErr = e.code === 1 ? 'ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง กรุณากดอนุญาต' : 'หาตำแหน่ง GPS ไม่ได้ ลองใหม่';
+    }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 });
+  }
 
   function keepAwake() {
     if ('wakeLock' in navigator) navigator.wakeLock.request('screen').then(function (l) { wakeLock = l; }).catch(function () {});
@@ -289,6 +303,7 @@
       if (!det) { FACE.blink.reset(); hint('มองกล้องให้เห็นหน้าชัดๆ'); return; }
       if (!FACE.bigEnough(det, video)) { hint('ขยับเข้ามาใกล้อีกนิด'); return; }
       if (info.liveness && !FACE.blink.update(det.landmarks)) { hint('กะพริบตา 1 ครั้ง'); return; }
+      if (info.geo && (!GEO || Date.now() - GEO.at > 60000)) { hint(geoErr || 'กำลังหาตำแหน่ง GPS...'); return; }
       return send(det);
     }).catch(function (e) { console.error(e); }).then(function () { setTimeout(loop, 250); });
   }
@@ -296,7 +311,7 @@
   function send(det) {
     busy = true;
     hint('กำลังตรวจสอบ...');
-    return api('kioskFace', KEY, FACE.descriptor(det), FACE.snapshot(video))
+    return api('kioskFace', KEY, FACE.descriptor(det), FACE.snapshot(video), info.geo && GEO ? { lat: GEO.lat, lng: GEO.lng, acc: GEO.acc } : null)
       .then(show)
       .catch(function (e) { show({ ok: false, message: e.message }); })
       .then(function () { busy = false; FACE.blink.reset(); });
