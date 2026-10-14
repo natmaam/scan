@@ -302,6 +302,12 @@
       .then(function () { busy = false; FACE.blink.reset(); });
   }
 
+  /** 'HH:mm' + นาที -> 'HH:mm' */
+  function addMin(hhmm, m) {
+    var p = String(hhmm).split(':'), t = (Number(p[0]) * 60 + Number(p[1]) + Number(m || 0)) % 1440;
+    return ('0' + Math.floor(t / 60)).slice(-2) + ':' + ('0' + (t % 60)).slice(-2);
+  }
+
   function show(r) {
     var box = $('result'), html, cls, ms = 5000;
     if (!r.ok) {
@@ -320,7 +326,8 @@
     } else if (r.action === 'BREAK_OUT') {
       fails = 0; cls = 'r-out';
       html = '<div class="big">☕ ออกพัก ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
-        '<div class="line">พักได้ ' + r.allowMin + ' นาที · กลับมาแล้วสแกนอีกครั้ง</div>';
+        '<div class="line">มีเวลาพัก ' + r.allowMin + ' นาที</div>' +
+        '<div class="line">⏰ กลับมาสแกนก่อน ' + addMin(r.time, r.allowMin) + ' น.</div>';
     } else if (r.action === 'BREAK_IN') {
       fails = 0; cls = 'r-in';
       html = '<div class="big">✓ กลับจากพัก ' + esc(r.time) + ' น.</div><div class="name">' + esc(r.name) + '</div>' +
